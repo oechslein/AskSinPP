@@ -22,7 +22,7 @@ public:
     id[1]=i2;
     id[2]=i3;
   }
-  HMID (uint8_t* ptr) {
+  HMID (const uint8_t* ptr) {
     id[0]=*ptr;
     id[1]=*(ptr+1);
     id[2]=*(ptr+2);
