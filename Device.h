@@ -179,6 +179,8 @@ public:
   #endif
     }
     id = HMID(device_id);
+#elif defined(DEVICE_INFO_IN_RAM)
+		id = HMID(info.DeviceID);
 #else
     uint8_t ids[3];
     memcpy_P(ids,info.DeviceID,3);
@@ -206,6 +208,8 @@ public:
       serial[i] = (boot_signature_byte_get(i + 14) % 10) + 48; // Char 0-9
     }
   #endif
+#elif defined(DEVICE_INFO_IN_RAM)
+    memcpy(serial,info.Serial,10);
 #else
     memcpy_P(serial,info.Serial,10);
 #endif
@@ -226,6 +230,8 @@ public:
   void getDeviceModel (uint8_t* model) {
 #ifdef USE_OTA_BOOTLOADER
     HalType::pgm_read(model,OTA_MODEL_START,2);
+#elif defined(DEVICE_INFO_IN_RAM)
+    memcpy(model,info.DeviceModel,sizeof(info.DeviceModel));
 #else
     memcpy_P(model,info.DeviceModel,sizeof(info.DeviceModel));
 #endif
@@ -234,7 +240,11 @@ public:
   void getDeviceInfo (uint8_t* di) {
     // first byte is number of channels
     *di = this->channels();
+#ifdef DEVICE_INFO_IN_RAM
+    memcpy(di+1,info.DeviceInfo,sizeof(info.DeviceInfo));
+#else
     memcpy_P(di+1,info.DeviceInfo,sizeof(info.DeviceInfo));
+#endif    
   }
 
   HMID getMasterID () {
@@ -352,7 +362,11 @@ public:
   void sendDeviceInfo (const HMID& to,uint8_t count) {
     DeviceInfoMsg& pm = msg.deviceInfo();
     pm.init(to,count);
+#ifdef DEVICE_INFO_IN_RAM
+    pm.fill(info.Firmware, info.DeviceType);
+#else
     pm.fill(pgm_read_byte(&info.Firmware),pgm_read_byte(&info.DeviceType));
+#endif
     getDeviceModel(pm.model());
     getDeviceSerial(pm.serial());
     getDeviceInfo(pm.info());
