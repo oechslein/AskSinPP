@@ -162,6 +162,13 @@ public:
     return data;
   }
 
+#ifdef DEVICE_INFO_IN_RAM
+  const DeviceInfo& getDeviceInfo () {
+    return info;
+  }
+#endif
+
+
   void getDeviceID (HMID& id) {
 #ifdef USE_OTA_BOOTLOADER
     HalType::pgm_read((uint8_t*)&id,OTA_HMID_START,sizeof(id));
