@@ -65,7 +65,7 @@ public:
 
   void dumpSize () {
     ChannelType& ch = channel(this->channels());
-    DPRINT("Address Space: ");DDEC(this->keystore().address());DPRINT(" - ");DDECLN((uint16_t)(ch.address() + ch.size()));
+    DPRINT(F("Address Space: "));DDEC(this->keystore().address());DPRINT(F(" - "));DDECLN((uint16_t)(ch.address() + ch.size()));
   }
 
   uint16_t checksum () {
@@ -118,6 +118,7 @@ public:
     HMID id;
     this->getDeviceID(id);
     hal.init(id);
+    hal.config(this->getConfigArea());
     return first;
   }
 
@@ -140,15 +141,13 @@ public:
   }
 
   void reset () {
-    if( getList0().localResetDisable() == false ) {
-      DPRINTLN(F("RESET"));
-      storage().reset();
+    DPRINTLN(F("RESET"));
+    storage().reset();
 #if ARDUINO_ARCH_AVR
-      resetFunc();
+    resetFunc();
 #elif ARDUINO_ARCH_STM32F1
-      nvic_sys_reset();
+    nvic_sys_reset();
 #endif
-    }
   }
 
   void bootloader () {

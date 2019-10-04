@@ -32,6 +32,7 @@ namespace as {
 #define DREG_TPARAMS           0x1b
 #define DREG_WAKEUPBEHAVIOUR   0x21
 #define DREG_BUTTON_MODE       0x32  // iButton Mode - Remote or State
+#define DREG_BUZZER_ENABLED    0x33  // enable Buzzer (used in HB-Devices)
 
 // Channel Registers used in List1
 #define CREG_EVENTFILTER 0x01
@@ -135,6 +136,9 @@ namespace as {
 #define PREG_ELSEJTONOFF 0x27
 #define PREG_ELSEJTDELAYONOFF 0x28
 #define PREG_ELSEJTRAMPONOFF 0x29
+#define PREG_ACTTYPE 0x24
+#define PREG_ACTNUM 0x25
+#define PREG_ACTINTENS 0x2B
 
 // Peer Registers used in List4
 #define PREG_BURST_AES 0x01
@@ -245,9 +249,9 @@ public:
     for( uint8_t idx=0; idx < size(); ++idx ) {
       uint8_t reg = getRegister(idx);
       DHEX(reg);
-      DPRINT(":");
+      DPRINT(F(":"));
       DHEX(readRegister(reg));
-      DPRINT(" ");
+      DPRINT(F(" "));
     }
     DPRINT(end);
 #endif
@@ -356,7 +360,7 @@ public:
   bool ledMode (uint8_t value) const { return this->writeRegister(DREG_LEDMODE,0x03,6,value); }
   bool cycleInfoMsg () const { return this->readRegister(DREG_CYCLICINFOMSG,false); }
   bool cycleInfoMsg (bool value) const { return this->writeRegister(DREG_CYCLICINFOMSG,value); }
-  uint8_t transmitDevTryMax () const { return this->readRegister(DREG_TRANSMITTRYMAX,6); }
+  uint8_t transmitDevTryMax () const { uint8_t v = this->readRegister(DREG_TRANSMITTRYMAX,6); return v == 0 ? 1 : v; }
   bool transmitDevTryMax (uint8_t value) const { return this->writeRegister(DREG_TRANSMITTRYMAX,value); }
   bool sabotageMsg () const { return this->readRegister(DREG_SABOTAGEMSG,true); }
   bool sabotageMsg (bool value) const { return this->writeRegister(DREG_SABOTAGEMSG,value); }
@@ -377,6 +381,9 @@ public:
 
   uint8_t buttonMode () const { return this->readRegister(DREG_BUTTON_MODE,0); }
   bool buttonMode (uint8_t value) const { return this->writeRegister(DREG_BUTTON_MODE,value); }
+
+  bool buzzerEnabled (bool v) const { return this->writeBit(DREG_BUZZER_ENABLED,0,v); }
+  bool buzzerEnabled () const { return this->readBit(DREG_BUZZER_ENABLED,0,false); }
 };
 
 
@@ -402,7 +409,7 @@ public:
   bool eventFilterTime(uint8_t v) const { return this->writeRegister(CREG_EVENTFILTERTIME,v); }
   uint8_t eventFilterTime() const { return this->readRegister(CREG_EVENTFILTERTIME,5); }
   bool transmitTryMax(uint8_t v) const { return this->writeRegister(CREG_TRANSMITTRYMAX,v); }
-  uint8_t transmitTryMax() const { return this->readRegister(CREG_TRANSMITTRYMAX,6); }
+  uint8_t transmitTryMax() const { uint8_t v = this->readRegister(CREG_TRANSMITTRYMAX,6); return v == 0 ? 1 : v;}
 
   uint8_t longPressTime () const { return this->readRegister(CREG_LONGPRESSTIME,0x0f,4,1); }
   bool longPressTime (uint8_t v) const { return this->writeRegister(CREG_LONGPRESSTIME,0x0f,4,v); }
@@ -764,6 +771,14 @@ public:
   bool elseJtRampOn (uint8_t v) const { return this->writeRegister(PREG_ELSEJTRAMPONOFF,0x0f,0,v); }
   uint8_t elseJtRampOff () const { return this->readRegister(PREG_ELSEJTRAMPONOFF,0x0f,4); }
   bool elseJtRampOff (uint8_t v) const { return this->writeRegister(PREG_ELSEJTRAMPONOFF,0x0f,4,v); }
+
+  uint8_t actType() const { return this->readRegister(PREG_ACTTYPE,0x00); }
+  bool actType(uint8_t v) const { return this->writeRegister(PREG_ACTTYPE,v); }
+  uint8_t actNum() const { return this->readRegister(PREG_ACTNUM,0x00); }
+  bool actNum(uint8_t v) const { return this->writeRegister(PREG_ACTNUM,v); }
+  uint8_t actIntens() const { return this->readRegister(PREG_ACTINTENS,0x00); }
+  bool actIntens(uint8_t v) const { return this->writeRegister(PREG_ACTINTENS,v); }
+
 };
 
 

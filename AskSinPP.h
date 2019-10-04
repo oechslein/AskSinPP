@@ -6,10 +6,16 @@
 #ifndef __ASKSINPP_h__
 #define __ASKSINPP_h__
 
-#define ASKSIN_PLUS_PLUS_VERSION "3.1.3"
+#define ASKSIN_PLUS_PLUS_VERSION "4.1.1"
 
 #define ASKSIN_PLUS_PLUS_IDENTIFIER F("AskSin++ V" ASKSIN_PLUS_PLUS_VERSION " (" __DATE__ " " __TIME__ ")")
 
+
+#define CONFIG_FREQ1     0
+#define CONFIG_FREQ2     1
+#define CONFIG_BOOTSTATE 2  //location of current boot state for ResetOnBoot
+
+#include <Debug.h>
 #include <stdint.h>
 
 #ifdef ARDUINO_ARCH_STM32F1
@@ -37,6 +43,7 @@
 #include <Debug.h>
 #include <Activity.h>
 #include <Led.h>
+#include <Buzzer.h>
 #include <AlarmClock.h>
 #include <Message.h>
 #include <Button.h>
@@ -115,24 +122,39 @@ public:
     return decis2ticks( (uint32_t)tByte*(iTime>>5) );
   }
 
+  // calculate time until next send slot
+  static uint32_t nextSendSlot (const HMID& id,uint8_t msgcnt) {
+    uint32_t value = ((uint32_t)id) << 8 | msgcnt;
+    value = (value * 1103515245 + 12345) >> 16;
+    value = (value & 0xFF) + 480;
+    value *= 250;
+
+    DDEC(value / 1000);DPRINT(".");DDECLN(value % 1000);
+
+    return value;
+  }
+
 };
 
-template <class StatusLed,class Battery,class Radio>
+template <class StatusLed,class Battery,class Radio,class Buzzer=NoBuzzer>
 class AskSin : public AskSinBase {
 
 public:
   typedef StatusLed LedType;
   typedef Battery   BatteryType;
   typedef Radio     RadioType;
+  typedef Buzzer    BuzzerType;
 
   LedType      led;
   BatteryType  battery;
   Activity     activity;
   RadioType    radio;
+  BuzzerType   buzzer;
 
   void init (const HMID& id) {
     srand((unsigned int&)id);
     led.init();
+    buzzer.init();
     radio.init();
     radio.enable();
     // start the system timer
@@ -141,6 +163,25 @@ public:
     led.set(LedStates::welcome);
     // delay first send by random time
     radio.setSendTimeout((rand() % 3500)+1000);
+  }
+
+  void initBattery(uint16_t interval,uint8_t low,uint8_t critical) {
+    battery.init(seconds2ticks(interval),sysclock);
+    battery.low(low);
+    battery.critical(critical);
+  }
+
+  void config (const StorageConfig& sc) {
+    if( sc.valid() == true ) {
+      uint8_t f1 = sc.getByte(CONFIG_FREQ1);
+      uint8_t f2 = sc.getByte(CONFIG_FREQ2);
+      if( f1 != 0 ) {
+        DPRINT(F("Config Freq: 0x21"));DHEX(f1);DHEXLN(f2);
+        radio.initReg(CC1101_FREQ2, 0x21);
+        radio.initReg(CC1101_FREQ1, f1);
+        radio.initReg(CC1101_FREQ0, f2);
+      }
+    }
   }
 
   bool runready () {
@@ -153,6 +194,41 @@ public:
   void waitTimeout(uint16_t millis) {
     radio.waitTimeout(millis);
   }
+
+#ifdef ARDUINO_ARCH_AVR
+  template <bool ENABLETIMER2=false, bool ENABLEADC=false>
+  void idle () { activity.savePower< Idle<ENABLETIMER2,ENABLEADC> >(*this); }
+
+  template <bool ENABLETIMER2=false>
+  void sleep () { activity.savePower< Sleep<ENABLETIMER2> >(*this); }
+#endif
+};
+
+
+template <class StatusLed,class Battery,class Radio,class Buzzer=NoBuzzer>
+class AskSinRTC : public AskSin<StatusLed,Battery,Radio,Buzzer> {
+public:
+  void init (const HMID& id) {
+    AskSin<StatusLed,Battery,Radio,Buzzer>::init(id);
+    // init real time clock - 1 tick per second
+    rtc.init();
+  }
+
+  void initBattery(uint16_t interval,uint8_t low,uint8_t critical) {
+    this->battery.init(interval,rtc);
+    this->battery.low(low);
+    this->battery.critical(critical);
+  }
+
+
+  bool runready () {
+      return rtc.runready() || AskSin<StatusLed,Battery,Radio,Buzzer>::runready();
+  }
+
+#ifdef ARDUINO_ARCH_AVR
+  template <bool ENABLETIMER2=false>
+  void sleep () { this->activity.template savePower< SleepRTC >(*this); }
+#endif
 };
 
 }

@@ -9,6 +9,10 @@
 #include "MultiChannelDevice.h"
 #include "Sensors.h"
 
+#ifndef SABOTAGE_ACTIVE_STATE
+#define SABOTAGE_ACTIVE_STATE LOW
+#endif
+
 namespace as {
 
 template <class Sensor,class HALTYPE,class List0Type,class List1Type,class List4Type,int PEERCOUNT>
@@ -116,7 +120,7 @@ public:
       }
     }
     if( sabpin != 0 ) {
-      bool sabstate = readPin(sabpin) == LOW;
+      bool sabstate = (readPin(sabpin) == SABOTAGE_ACTIVE_STATE);
       if( sabotage != sabstate && this->device().getList0().sabotageMsg() == true ) {
         sabotage = sabstate;
         this->changed(true); // trigger StatusInfoMessage to central
@@ -215,13 +219,13 @@ public:
   virtual void configChanged () {
     // activate cycle info message
     if( this->getList0().cycleInfoMsg() == true ) {
-      DPRINTLN("Activate Cycle Msg");
+      DPRINTLN(F("Activate Cycle Msg"));
       sysclock.cancel(cycle);
       cycle.set(CycleTime);
       sysclock.add(cycle);
     }
     else {
-      DPRINTLN("Deactivate Cycle Msg");
+      DPRINTLN(F("Deactivate Cycle Msg"));
       sysclock.cancel(cycle);
     }
   }

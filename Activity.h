@@ -9,14 +9,13 @@
 #include <Debug.h>
 #include <AlarmClock.h>
 #include <Radio.h>
-
-#if defined(ARDUINO_ARCH_AVR) && ! defined(ARDUINO_AVR_ATmega32)
+#if defined(ARDUINO_ARCH_AVR) && ! ( defined(ARDUINO_AVR_ATmega32) || defined(__AVR_ATmega644__))
 #include <LowPower.h>
 #endif
 
 namespace as {
 
-#if defined(ARDUINO_ARCH_AVR) && ! defined(ARDUINO_AVR_ATmega32)
+#if defined(ARDUINO_ARCH_AVR) && ! (defined(ARDUINO_AVR_ATmega32) || defined(__AVR_ATmega644__))
 
 
 template <bool ENABLETIMER2=false, bool ENABLEADC=false>
@@ -110,7 +109,7 @@ public:
     else if( ticks > millis2ticks(15)  ) { sleeptime = SLEEP_15MS; }
 
     uint32_t c1 = rtc.getCounter(true);
-    LowPower.powerExtStandby(sleeptime,ADC_OFF,BOD_OFF,TIMER2_ON);
+    LowPower.powerSave(sleeptime,ADC_OFF,BOD_OFF,TIMER2_ON);
     uint32_t c2 = rtc.getCounter(false);
     offset = (c2 - c1) * seconds2ticks(1) / 256;
     // DHEX(ticks);DPRINT("  ");DHEX(c1);DPRINT(":");DHEX(c2);DPRINT("  ");DHEXLN(offset);
@@ -191,7 +190,7 @@ public:
   void sleepForever (Hal& hal) {
     hal.radio.setIdle();
     while( true ) {
-#if defined(ARDUINO_ARCH_AVR) && ! defined(ARDUINO_AVR_ATmega32)
+#if defined(ARDUINO_ARCH_AVR) && ! (defined(ARDUINO_AVR_ATmega32) || defined(__AVR_ATmega644__))
       LowPower.powerDown(SLEEP_FOREVER,ADC_OFF,BOD_OFF);
 #endif
     }

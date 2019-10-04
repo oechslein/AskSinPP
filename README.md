@@ -1,7 +1,7 @@
 
-# Please use V3 Branch for your devices. The master branch is used for active development and may be instable
+# Please use V4 Branch for your devices. The master branch is used for active development and may be instable
 
-# AskSin++
+# AskSin++  [![Build Status](https://travis-ci.org/pa-pa/AskSinPP.svg?branch=master)](https://travis-ci.org/pa-pa/AskSinPP)
 
 C++ implementation of the AskSin protocol
 
@@ -45,6 +45,8 @@ In FHEM you can get the key from the *hmKey*,
 *hmKey2*, *hmKey3* attributes of the VCCU. The index is the key
 number multiplied by 2.
 
-
-
+## Extra Defines for Configuration
+- **USE_WOR** - enables WOR listening during idle (burst devices)
+- **SENSOR_ONLY** - save some byte by exclude code for actor devices
+- **DEVICE_CHANNEL_COUNT** - set number of device channels, skip calculation
 

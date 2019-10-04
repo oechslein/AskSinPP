@@ -6,6 +6,8 @@
 // define this to read the device id, serial and device type from bootloader section
 // #define USE_OTA_BOOTLOADER
 
+#define SENSOR_ONLY
+
 #define EI_NOTEXTERNAL
 #include <EnableInterrupt.h>
 #include <AskSinPP.h>
@@ -110,6 +112,8 @@ public:
   bool transmitDevTryMax (uint8_t value) const { return setByte(sizeof(List0Data) + 1,value); }
   bool localResetDisable () const { return isBitSet(sizeof(List0Data) + 2,0x01); }
   bool localResetDisable (bool value) const { return setBit(sizeof(List0Data) + 2,0x01,value); }
+
+  uint8_t ledMode () const { return 1; }
 
   void defaults () {
     ((List0*)this)->defaults();

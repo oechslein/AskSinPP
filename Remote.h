@@ -26,8 +26,8 @@ public:
   }
 };
 
-template<class HALTYPE,int PEERCOUNT,class List0Type=List0>
-class RemoteChannel : public Channel<HALTYPE,RemoteList1,EmptyList,DefList4,PEERCOUNT,List0Type>, public Button {
+template<class HALTYPE,int PEERCOUNT,class List0Type=List0,class List1Type=RemoteList1>
+class RemoteChannel : public Channel<HALTYPE,List1Type,EmptyList,DefList4,PEERCOUNT,List0Type>, public Button {
 
 private:
   uint8_t       repeatcnt;
@@ -35,7 +35,7 @@ private:
 
 public:
 
-  typedef Channel<HALTYPE,RemoteList1,EmptyList,DefList4,PEERCOUNT,List0Type> BaseChannel;
+  typedef Channel<HALTYPE,List1Type,EmptyList,DefList4,PEERCOUNT,List0Type> BaseChannel;
 
   RemoteChannel () : BaseChannel(), repeatcnt(0), isr(false) {}
   virtual ~RemoteChannel () {}
@@ -83,6 +83,39 @@ public:
     return true;
   }
 };
+
+template<class DeviceType,int DownChannel,int UpChannel>
+class RemoteEncoder : public BaseEncoder, public Alarm {
+  int8_t last;
+  DeviceType& sdev;
+public:
+  RemoteEncoder(DeviceType& d) : BaseEncoder(), Alarm(0), last(0), sdev(d) {}
+  virtual ~RemoteEncoder() {}
+
+  void process () {
+    int8_t dir = read();
+    if( dir != 0 ) {
+      if( dir < 0 ) dir = -1;
+      else          dir =  1;
+      sysclock.cancel(*this);
+      if( last != 0 && last != dir ) {
+        trigger(sysclock);
+      }
+      sdev.channel(dir < 0 ? DownChannel : UpChannel).state(StateButton<>::longpressed);
+      set(millis2ticks(400));
+      last = dir;
+      sysclock.add(*this);
+    }
+  }
+
+  virtual void trigger (__attribute__((unused)) AlarmClock& clock) {
+    if( last != 0 ) {
+      sdev.channel(last < 0 ? DownChannel : UpChannel).state(StateButton<>::longreleased);
+      last = 0;
+    }
+  }
+};
+
 
 #define remoteISR(device,chan,pin) class device##chan##ISRHandler { \
   public: \

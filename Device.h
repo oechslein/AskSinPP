@@ -14,6 +14,7 @@
 #include "Message.h"
 #include "Radio.h"
 #include "Led.h"
+#include "Buzzer.h"
 #include "Activity.h"
 
 #ifdef USE_HW_SERIAL
@@ -82,6 +83,7 @@ public:
   typedef typename HalType::LedType LedType;
   typedef typename HalType::BatteryType BatteryType;
   typedef typename HalType::RadioType RadioType;
+  typedef typename HalType::BuzzerType BuzzerType;
   typedef List0Type List0;
 
 private:
@@ -115,6 +117,7 @@ public:
   BatteryType& battery ()  { return hal->battery; }
   const BatteryType& battery () const { return hal->battery; }
   RadioType& radio () { return hal->radio; }
+  BuzzerType& buzzer () { return hal->buzzer; }
   KeyStore& keystore () { return this->kstore; }
   Activity& activity () { return hal->activity; }
 
@@ -145,6 +148,14 @@ public:
 
   void setHal (HalType& h) {
     hal = &h;
+  }
+
+  HalType& getHal () {
+    return *hal;
+  }
+
+  StorageConfig getConfigArea () {
+    return StorageConfig(kstore.address()-STORAGE_CFG_START);
   }
 
   uint8_t getConfigByte (uint8_t offset) {
@@ -246,7 +257,11 @@ public:
 
   void getDeviceInfo (uint8_t* di) {
     // first byte is number of channels
+#ifdef DEVICE_CHANNEL_COUNT
+    *di = DEVICE_CHANNEL_COUNT;
+#else
     *di = this->channels();
+#endif
 #ifdef DEVICE_INFO_IN_RAM
     memcpy(di+1,info.DeviceInfo,sizeof(info.DeviceInfo));
 #else
@@ -541,12 +556,25 @@ public:
     hal->sendPeer();
   }
 
+  template <class ChannelType>
+  void broadcastEvent (Message& msg,const ChannelType& ch) {
+    broadcastEvent(msg);
+  }
+
+  void broadcastEvent (Message& msg) {
+    msg.clearAck();
+    msg.burstRequired(false);
+    msg.setBroadcast();
+    send(msg,HMID::broadcast);
+    hal->sendPeer();
+  }
+
   void writeList (const GenericList& list,const uint8_t* data,uint8_t length) {
     for( uint8_t i=0; i<length; i+=2, data+=2 ) {
       list.writeRegister(*data,*(data+1));
     }
   }
-
+/*
   bool waitForAck(Message& msg,uint8_t timeout) {
     do {
       if( radio().readAck(msg) == true ) {
@@ -558,7 +586,7 @@ public:
     while( timeout > 0 );
     return false;
   }
-
+*/
   bool waitResponse(const Message& msg,Message& response,uint8_t timeout) {
     do {
       uint8_t num = radio().read(response);
@@ -631,7 +659,7 @@ public:
 
   bool processChallenge(const Message& msg,const uint8_t* challenge,uint8_t keyidx) {
     if( kstore.challengeKey(challenge,keyidx) == true ) {
-      DPRINT("Process Challenge - Key: ");DHEXLN(keyidx);
+      DPRINT(F("Process Challenge - Key: "));DHEXLN(keyidx);
       AesResponseMsg answer;
       answer.init(msg);
       // fill initial vector with message to sign
